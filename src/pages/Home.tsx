@@ -3,26 +3,21 @@ import { Waves, Wind, ChevronDown, Shield, AlertTriangle, User, EyeOff } from 'l
 import { timeSlots } from '@/data/timeSlots';
 import { Level, FilterMode } from '@/types';
 import { cn } from '@/lib/utils';
+import { sortByWaveHeight, filterSlots, isDangerWave, getLevelLabel } from '@/lib/filterRules';
+import { TimeSlot } from '@/types';
 
-export default function Home() {
+interface HomeProps {
+  data?: TimeSlot[];
+}
+
+export default function Home({ data }: HomeProps = {}) {
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const sortedSlots = useMemo(() => {
-    return [...timeSlots].sort((a, b) => a.waveHeight - b.waveHeight);
-  }, []);
+  const sortedSlots = useMemo(() => sortByWaveHeight(data ?? timeSlots), []);
 
   const filteredSlots = useMemo(() => {
-    if (filterMode === 'all') return sortedSlots;
-    if (filterMode === 'beginner') {
-      return sortedSlots.filter(
-        (slot) => !(slot.waveHeight > 0.8 && slot.windLevel >= 4)
-      );
-    }
-    if (filterMode === 'advanced') {
-      return sortedSlots.filter((slot) => !(slot.waveHeight > 1.5));
-    }
-    return sortedSlots;
+    return filterSlots(sortedSlots, filterMode);
   }, [sortedSlots, filterMode]);
 
   useEffect(() => {
@@ -37,10 +32,6 @@ export default function Home() {
 
   const handleFilterChange = (mode: FilterMode) => {
     setFilterMode(mode);
-  };
-
-  const getLevelLabel = (level: Level) => {
-    return level === 'beginner' ? '入门' : '进阶';
   };
 
   const getLevelColorClass = (level: Level) => {
@@ -79,7 +70,7 @@ export default function Home() {
     return '';
   };
 
-  const isDangerRow = (waveHeight: number) => waveHeight >= 1.2;
+  const isDangerRow = isDangerWave;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-ocean-50 via-white to-ocean-100">
@@ -208,7 +199,7 @@ export default function Home() {
                             )} />
                           </div>
                           <div>
-                            <div className={cn(
+                            <div data-testid={`wave-${slot.id}`} className={cn(
                               'text-lg font-bold',
                               danger ? 'text-red-700' : 'text-ocean-900'
                             )}>
